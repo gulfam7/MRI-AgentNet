@@ -1,0 +1,16 @@
+openai
+numpy==1.24.0
+dropbox
+h5py
+spacy
+nibabel
+pydicom
+scipy
+torch>=1.4.0
+torchvision>=0.5.0
+dominate>=2.4.0
+visdom>=0.1.8.8
+wandb
+google-generativeai
+matplotlib
+bert-score
