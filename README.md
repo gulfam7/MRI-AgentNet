@@ -1,6 +1,7 @@
 # MRI-AgentNet
 
-**MRI-AgentNet** is the implementation repository accompanying the paper **“MRI-AgentNet”**, presented at **ICAD 2026**.
+**MRI-AgentNet** is the implementation repository accompanying the paper **“MRI-AgentNet: A Vision Language Models-Based
+Multi-Agent AI System for Solving Inverse Problems in MRI”**, presented at **ICAD 2026**.
 
 The project explores a multi-agent AI workflow for **MRI corruption analysis and correction planning**, combining large multimodal models, expert-style evaluation, and downstream restoration model selection. Given an MRI input, the system first identifies whether the scan is in image space or k-space, classifies the corruption type, aggregates judgments from multiple AI evaluators, and then routes the case toward a specialized correction model.
 
