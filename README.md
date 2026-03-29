@@ -255,10 +255,13 @@ If you plan to release this publicly, it is a good idea to also add:
 If you use this repository in academic work, please cite the **MRI-AgentNet** paper from **ICAD 2026**.
 
 ```bibtex
-@inproceedings{mri_agentnet_icad_2026,
-  title={MRI-AgentNet},
-  booktitle={ICAD},
-  year={2026}
+@inproceedings{mriagentnet_icad2026,
+  author    = {Gulfam Ahmed Saju, Marjan Akhi and Yuchou Chang},
+  title     = {MRI-AgentNet: A Vision Language Models-Based Multi-Agent AI System for Solving Inverse Problems in MRI},
+  booktitle = {2026 IEEE International Conference on AI and Data Analytics (ICAD)},
+  year      = {2026},
+  address   = {Boston, Massachusetts, USA},
+  note      = {Accepted for publication}
 }
 ```
 
