@@ -233,22 +233,7 @@ This makes the repository useful both for:
 - multi-agent medical AI experimentation
 - human-in-the-loop or expert-inspired evaluation pipelines
 
-## Reproducibility Notes
 
-The current repository reflects an active research codebase. A few implementation details are worth knowing before publishing or reproducing experiments:
-
-- some paths inside the scripts are still configured with local Windows-style defaults
-- the main scripts depend on external APIs and Dropbox hosting for image exchange
-- restoration behavior depends on local checkpoint availability under `checkpoints/` and `models/checkpoints/`
-- the repository includes both rule-based and meta-learning-oriented variants of the decision flow
-
-If you plan to release this publicly, it is a good idea to also add:
-
-- a `.gitignore` for local artifacts and credentials
-- a `.env.example`
-- checkpoint download instructions
-- dataset provenance notes
-- citation metadata once the final bibliographic record is available
 
 ## Citation
 
@@ -265,12 +250,5 @@ If you use this repository in academic work, please cite the **MRI-AgentNet** pa
 }
 ```
 
-You can replace this placeholder entry with the final author list, page numbers, DOI, and publisher metadata once the official proceedings citation is available.
 
-## Acknowledgments
 
-This repository integrates:
-
-- the MRI-AgentNet multi-agent decision workflow
-- custom preprocessing and parser utilities for MRI corruption analysis
-- a CycleGAN-based restoration backend adapted for MRI correction experiments
