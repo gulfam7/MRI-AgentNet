@@ -5,6 +5,8 @@ Multi-Agent AI System for Solving Inverse Problems in MRI”**, presented at **I
 
 The project explores a multi-agent AI workflow for **MRI corruption analysis and correction planning**, combining large multimodal models, expert-style evaluation, and downstream restoration model selection. Given an MRI input, the system first identifies whether the scan is in image space or k-space, classifies the corruption type, aggregates judgments from multiple AI evaluators, and then routes the case toward a specialized correction model.
 
+**Stack:** Python · LangGraph · LangChain · Pydantic · LangSmith · PyTorch · OpenAI GPT-4o · Google Gemini · DSPy
+
 ## Overview
 
 MRI-AgentNet is built around the idea that difficult medical image quality decisions benefit from **structured collaboration** rather than a single model response. In this repository, GPT-4o, Gemini, a radiologist-style evaluator, and a principal-investigator-style evaluator are orchestrated into a staged decision pipeline. The result is not just a label, but a richer artifact that includes:
@@ -16,6 +18,55 @@ MRI-AgentNet is built around the idea that difficult medical image quality decis
 - correction plan
 
 The implementation also includes a lightweight **meta-learning module** that learns from agreement and disagreement patterns across evaluators to predict the most appropriate correction pathway.
+
+## Implementations
+
+The repository contains two implementations of the same multi-agent pipeline.
+
+| | `agent_multi_meta_learning.py` (original) | `agentnet_lc/` (LangGraph) |
+|---|---|---|
+| Orchestration | One 270-line `process()` method | Explicit `StateGraph` with typed state |
+| Agent output | ~250 lines of regex + spaCy extraction | Pydantic schemas via `with_structured_output` |
+| Two assistants | Sequential loop | Concurrent fan-out, joined at the reviewer |
+| Failure handling | Unguarded indexing | Per-node capture, retries, cross-provider fallback |
+| Image transfer | Uploaded to Dropbox for a public URL | Inline base64 data URI; scans stay local |
+| Observability | `print()` | LangSmith spans (latency, cost, full traces) |
+| Entry point | Tkinter dialog + `input()` | `argparse` CLI, batch and headless capable |
+| Tests | None | 7 offline tests with stub models |
+
+The LangGraph topology, rendered from the compiled graph:
+
+```mermaid
+graph TD;
+    __start__ --> classify_space;
+    classify_space -. k-space .-> convert_kspace;
+    classify_space -.-> assess;
+    convert_kspace --> assess;
+    assess --> assistant_gpt4o;
+    assess --> assistant_gemini;
+    assistant_gpt4o --> radiologist;
+    assistant_gemini --> radiologist;
+    radiologist --> pi_independent;
+    pi_independent --> pi_arbitration;
+    pi_arbitration --> route;
+    route --> __end__;
+```
+
+Two edges out of `assess` form one concurrent superstep; two edges into
+`radiologist` form a barrier that waits for both assistants.
+
+Supporting modules:
+
+- [`evals/langsmith_eval.py`](evals/langsmith_eval.py) - LangSmith dataset upload plus
+  correctness, calibration (Brier) and routing evaluators, for ablation comparisons.
+- [`evals/dspy_optimize.py`](evals/dspy_optimize.py) - DSPy MIPROv2 compilation of the
+  classifier prompt and few-shot demonstrations, replacing hand-picked exemplars.
+- [`model_selection/router_v2.py`](model_selection/router_v2.py) - routing model retrained
+  without the ground-truth feature, sharing one featuriser with inference.
+- [`tests/test_graph_smoke.py`](tests/test_graph_smoke.py) - end-to-end graph tests that
+  need no API keys and no network.
+
+Full details in [`agentnet_lc/README.md`](agentnet_lc/README.md).
 
 ## Core Idea
 
@@ -44,8 +95,11 @@ This design is aimed at corruption categories such as:
 - Image-space / k-space pre-classification
 - Few-shot radiologist-style prompting for expert-like review
 - Rule-based and meta-learning-based decision flows
-- Model routing into restoration backends under [`models/`](/Volumes/Gulfam/D%20Drive%20Lab/MRI-AgentNet/models)
+- Model routing into restoration backends under [`models/`](models/)
 - Utility modules for parsing, preprocessing, confidence extraction, and model selection
+- LangGraph state-machine implementation with concurrent agent execution
+- Type-safe agent contracts via Pydantic structured output
+- LangSmith tracing and a dataset-backed evaluation harness
 
 ## Architecture
 
@@ -70,30 +124,33 @@ MRI Input
 
 ```text
 MRI-AgentNet/
-├── agent_multi_meta_learning.py
+├── agent_multi_meta_learning.py      # original orchestrator
 ├── agent_multi_eval_rule_based.py
+├── agentnet_lc/                      # LangGraph / LangChain implementation
+│   ├── graph.py                      # StateGraph wiring
+│   ├── schemas.py                    # Pydantic agent contracts
+│   ├── state.py                      # typed pipeline state
+│   ├── nodes.py                      # per-stage node functions
+│   ├── llms.py                       # model factory, retries, fallbacks
+│   ├── prompts.py                    # prompt construction
+│   ├── router.py                     # routing node
+│   └── cli.py                        # command-line entry point
+├── evals/
+│   ├── langsmith_eval.py
+│   └── dspy_optimize.py
+├── tests/
+│   └── test_graph_smoke.py
 ├── model_selection/
 │   ├── data_generation.py
 │   ├── meta_learning.py
-│   ├── meta_training_data.json
+│   ├── router_v2.py
 │   └── testing_meta.py
-├── models/
-│   ├── README.md
-│   ├── test.py
-│   ├── train.py
-│   └── ...
+├── models/                           # CycleGAN restoration backends
 ├── utils/
-│   ├── data_processing.py
-│   ├── data_processing_confidence.py
-│   ├── few_shot_gpt4o.py
-│   ├── gemini_interface_confidence.py
-│   ├── gpt4o_interface.py
-│   ├── model_selector.py
-│   ├── plan_parser.py
-│   └── ...
 ├── data/
 ├── checkpoints/
-└── requirements.txt
+├── requirements.txt
+└── requirements-langchain.txt
 ```
 
 ## Main Entry Points
@@ -138,9 +195,12 @@ Create a Python environment and install the dependencies:
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# for the LangGraph implementation
+pip install -r requirements-langchain.txt
 ```
 
-Key dependencies listed in [`requirements.txt`](/Volumes/Gulfam/D%20Drive%20Lab/MRI-AgentNet/requirements.txt) include:
+Key dependencies listed in [`requirements.txt`](requirements.txt) include:
 
 - `openai`
 - `google-generativeai`
@@ -179,7 +239,22 @@ To run the rule-based evaluation variant:
 python agent_multi_eval_rule_based.py
 ```
 
-Both scripts currently open a file picker for MRI input selection and then request a prompt from the user.
+Both scripts open a file picker for MRI input selection and then request a prompt from the user.
+
+The LangGraph implementation runs headless and accepts a file or a directory:
+
+```bash
+python -m agentnet_lc.cli --print-graph
+python -m agentnet_lc.cli --input scan.png --ground-truth "motion corrupted"
+python -m agentnet_lc.cli --input data/ --glob "*.png" --jsonl traces/cases.jsonl
+```
+
+`--jsonl` writes one trace row per case; that file is the input to router retraining
+and to the evaluation harness. Tests need no credentials:
+
+```bash
+python -m pytest tests/ -v
+```
 
 ## Meta-Learning Workflow
 
@@ -208,13 +283,13 @@ python testing_meta.py
 
 ## Restoration Models
 
-The restoration stack lives under [`models/`](/Volumes/Gulfam/D%20Drive%20Lab/MRI-AgentNet/models), which appears to be adapted from a CycleGAN / image-to-image translation codebase and is used here as the correction backend for:
+The restoration stack lives under [`models/`](models/), which appears to be adapted from a CycleGAN / image-to-image translation codebase and is used here as the correction backend for:
 
 - MRI motion correction
 - MRI denoising
 - MRI reconstruction / undersampling recovery
 
-Please see [`models/README.md`](/Volumes/Gulfam/D%20Drive%20Lab/MRI-AgentNet/models/README.md) for model-specific details inherited from that framework.
+Please see [`models/README.md`](models/README.md) for model-specific details inherited from that framework.
 
 ## Research Positioning
 
