@@ -1,0 +1,25 @@
+# Framework stack for agentnet_lc/. Install alongside requirements.txt.
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt -r requirements-langchain.txt
+#
+# Versions are pinned with lower bounds because the LangChain 1.x line has
+# stable core APIs but the integration packages still move.
+
+langchain-core>=1.0,<2.0
+langgraph>=1.0,<2.0
+langchain-openai>=1.0
+langchain-google-genai>=3.0
+pydantic>=2.7,<3.0
+
+# Tracing, datasets and evaluation. Set LANGSMITH_TRACING=true and
+# LANGSMITH_API_KEY to light this up; no code changes required.
+langsmith>=0.4
+
+# Optional: ASCII rendering of the compiled graph (otherwise Mermaid is used).
+grandalf>=0.8
+
+# Optional: prompt optimisation instead of hand-tuning (see evals/dspy_optimize.py).
+dspy>=2.6
+
+# Test runner for tests/test_graph_smoke.py
+pytest>=8.0

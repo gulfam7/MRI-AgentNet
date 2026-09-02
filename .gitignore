@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Secrets — never commit these
+.env
+.env.*
+*.key
+
+# Run artefacts
+traces/
+results/
+checkpoints/
+evals/compiled_classifier.json
+wandb/
+.langgraph_api/
+
+# Model checkpoints (keep meta_model_best.pth if it is already tracked upstream)
+model_selection/router_v2.pth
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
